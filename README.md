@@ -1,23 +1,23 @@
-# pyvcs — apna khud ka, independent Version Control System
+# pyvcs — Your Own Independent Version Control System
 
-`pyvcs` ek **poori tarah se independent** version control system hai — Git nahi, Git **jaisa**. Iska apna commit object model hai, apna staging area hai, apna branch/merge/tag/stash engine hai, aur GitHub par push karne ke liye ye seedhe **GitHub ke REST API se HTTP call** karta hai — kisi bhi jagah `git` binary ko call nahi karta. System mein Git installed ho ya na ho, `pyvcs` bilkul kaam karega.
+`pyvcs` is a **fully independent** version control system — not Git, but Git-**inspired**. It has its own commit object model, its own staging area, its own branch/merge/tag/stash engine, and to push to GitHub it makes direct **HTTP calls to GitHub's REST API** — the `git` binary is never called anywhere. Whether Git is installed on the system or not, `pyvcs` works exactly the same.
 
 ---
 
 ## Contents
 
-1. [Ye kaam kaise karta hai (Architecture)](#1-ye-kaam-kaise-karta-hai-architecture)
-2. [Install / Run kaise karein](#2-install--run-kaise-karein)
-3. [Sab commands (reference)](#3-sab-commands-reference)
-4. [GitHub par push kaise hota hai (bina Git ke)](#4-github-par-push-kaise-hota-hai-bina-git-ke)
-5. [Naya command kaise add karein](#5-naya-command-kaise-add-karein)
-6. [Code editor (VS Code) ke saath integration](#6-code-editor-vs-code-ke-saath-integration)
-7. [Web Dashboard (git jaisi UI)](#7-web-dashboard-git-jaisi-ui)
-8. [Limitations — imandaari se](#8-limitations--imandaari-se)
+1. [How it works (Architecture)](#1-how-it-works-architecture)
+2. [Install / Run](#2-install--run)
+3. [Full Command Reference](#3-full-command-reference)
+4. [Pushing to GitHub (without Git)](#4-pushing-to-github-without-git)
+5. [Adding a New Command](#5-adding-a-new-command)
+6. [Code Editor (VS Code) Integration](#6-code-editor-vs-code-integration)
+7. [Web Dashboard (Git-like UI)](#7-web-dashboard-git-like-ui)
+8. [Limitations — the honest list](#8-limitations--the-honest-list)
 
 ---
 
-## 1. Ye kaam kaise karta hai (Architecture)
+## 1. How it works (Architecture)
 
 ```mermaid
 graph TD
@@ -53,61 +53,61 @@ graph TD
 
 **Layers:**
 
-| Layer | File(s) | Kaam |
+| Layer | File(s) | Responsibility |
 |---|---|---|
-| **CLI Router** | `cli.py` | Terminal se `vcs <command>` parse karke sahi function call karta hai |
-| **Core Engine** | `repo.py` | Staging, commit, status, log, diff, blame, revert, gc — sab yahin se orchestrate hota hai |
-| **Object Store** | `objects.py` | Har file/tree/commit ko SHA-256 se content-addressed object bana ke `.vcs/objects/` mein zlib-compressed store karta hai (Git ke object model jaisa hi idea, apna implementation) |
+| **CLI Router** | `cli.py` | Parses `vcs <command>` from the terminal and calls the right function |
+| **Core Engine** | `repo.py` | Staging, commit, status, log, diff, blame, revert, gc — all orchestrated from here |
+| **Object Store** | `objects.py` | Turns every file/tree/commit into a content-addressed object (SHA-256), zlib-compressed, stored in `.vcs/objects/` (same idea as Git's object model, entirely original implementation) |
 | **Branching** | `branch.py` | Create / switch / delete / merge (fast-forward + 3-way) |
 | **Tags** | `tagger.py` | Named pointers to commits |
-| **Stash** | `stash.py` | Uncommitted changes ko temporarily shelve karna |
-| **Ignore rules** | `ignore.py` | `.vcsignore` file padhta hai — kis file ko track nahi karna |
-| **Packfile / GC** | `packfile.py` | Loose objects ko compact packfile mein combine karta hai |
-| **Networking** | `remote.py` | Do jagah push kar sakta hai: (a) apna `pyvcs` server (b) seedha GitHub (REST API se) |
-| **pyvcs Server** | `server.py` | Tumhara apna lightweight remote-hosting server (jaise ek mini "self-hosted GitHub") |
-| **Dashboard** | `dashboard.py` | Browser-based UI — status/log/branches/push sab ek jagah |
+| **Stash** | `stash.py` | Temporarily shelving uncommitted changes |
+| **Ignore rules** | `ignore.py` | Reads the `.vcsignore` file — which files to never track |
+| **Packfile / GC** | `packfile.py` | Combines loose objects into a compact packfile |
+| **Networking** | `remote.py` | Can push in two places: (a) your own `pyvcs` server, (b) directly to GitHub (via REST API) |
+| **pyvcs Server** | `server.py` | Your own lightweight remote-hosting server (think of it as a mini "self-hosted GitHub") |
+| **Dashboard** | `dashboard.py` | Browser-based UI — status/log/branches/push all in one place |
 
-Sab kuch pure Python standard library se bana hai — koi external dependency install nahi karni.
+Built entirely on the Python standard library — no external dependency to install.
 
 ---
 
-## 2. Install / Run kaise karein
+## 2. Install / Run
 
-Kisi bhi external package ki zaroorat nahi (Python 3.8+ bas kaafi hai). Ab is folder mein ek-click installer bhi diya hai, taaki koi bhi (chahe world mein kahin bhi ho) sirf ek command chala ke `vcs` use kar sake — kisi bhi tarah ka manual path setup ya alias likhna nahi padta.
+No external packages required (Python 3.8+ is all you need). This folder also ships with a one-click installer, so anyone — anywhere in the world — can install `vcs` with a single command, with no manual path setup or alias-writing needed.
 
-### Sabse aasan tareeka — one-click installer
+### Easiest way — one-click installer
 
-**Windows**: `vcs` folder ke andar `install.bat` par double-click karo (ya terminal se `install.bat` chalao).
-**macOS / Linux**: terminal mein:
+**Windows**: double-click `install.bat` inside the `vcs` folder (or run it from a terminal).
+**macOS / Linux**: in a terminal:
 ```bash
 cd path/to/pyvcs/vcs
 bash install.sh
 ```
 
-Dono installer **is folder ka apna hi path detect kar lete hain** — yaani folder chahe kahin bhi rakha ho (Desktop, D: drive, USB, kisi bhi machine par), installer khud sahi jagah `vcs` command ko point kar dega. Installer chalne ke baad ek **naya terminal window** kholo, aur seedha likho:
+Both installers **automatically detect their own folder's location** — meaning no matter where the folder is placed (Desktop, D: drive, USB stick, any machine), the installer will wire up the `vcs` command correctly. After running the installer, open a **new terminal window**, and just type:
 ```bash
 vcs init
 vcs stage .
 vcs save -m "first commit"
 ```
 
-> Ye installer scripts ek dusre computer par bhi bilkul waise hi kaam karenge — kisi ke naam ya path ka koi hardcoding nahi hai andar.
+> These installer scripts will work identically on someone else's computer too — there's no hardcoded username or path inside them.
 
-### Manual tareeka (bina installer ke)
+### Manual way (without the installer)
 
 ```bash
-# 1. Apne project folder mein jaao
-cd path/to/tumhara-project
+# 1. Go to your project folder
+cd path/to/your-project
 
-# 2. pyvcs ki files ko wahan copy karo (ya PYTHONPATH mein rakho)
-#    maan lo pyvcs ka source tumhare paas ~/pyvcs/vcs mein hai:
+# 2. Copy the pyvcs files there (or keep them on your PYTHONPATH)
+#    assuming your pyvcs source is at ~/pyvcs/vcs:
 
 python3 ~/pyvcs/vcs/cli.py init .
 ```
 
-Roz-roz `python3 ~/pyvcs/vcs/cli.py ...` likhna avoid karne ke liye, ek chhota shortcut bana lo:
+To avoid typing the full path every time, create a small shortcut:
 
-**Linux / macOS** (`~/.bashrc` ya `~/.zshrc` mein):
+**Linux / macOS** (in `~/.bashrc` or `~/.zshrc`):
 ```bash
 alias vcs="python3 ~/pyvcs/vcs/cli.py"
 ```
@@ -117,7 +117,7 @@ alias vcs="python3 ~/pyvcs/vcs/cli.py"
 function vcs { python "$HOME\pyvcs\vcs\cli.py" @args }
 ```
 
-Ab tum kahin se bhi seedha likh sakte ho:
+Now you can type from anywhere:
 ```bash
 vcs init
 vcs stage .
@@ -125,59 +125,59 @@ vcs save -m "first commit"
 vcs log
 ```
 
-> Chaho toh `setup.py` (already isme diya hua hai) use karke `pip install -e .` bhi kar sakte ho, taaki `vcs` command system-wide ban jaaye — lekin upar wala alias sabse simple aur zero-dependency tareeka hai.
+> If you prefer, you can also run `pip install -e .` (using the `setup.py` already included) to make `vcs` available system-wide — but the alias above is the simplest, zero-dependency approach.
 
 ---
 
-## 3. Sab commands (reference)
+## 3. Full Command Reference
 
-| Command | Kaam |
+| Command | What it does |
 |---|---|
-| `vcs init [dir]` | Naya repository banata hai (`.vcs/` folder create hota hai) |
-| `vcs stage <file\|dir\|.>` | File(s) ko staging area mein daalta hai |
-| `vcs unstage <file>` | Staging se hataata hai |
-| `vcs save -m "msg"` | Staged files ka commit (snapshot) banata hai |
-| `vcs status` | Staged / modified / untracked files dikhata hai |
+| `vcs init [dir]` | Creates a new repository (creates a `.vcs/` folder) |
+| `vcs stage <file\|dir\|.>` | Adds file(s) to the staging area |
+| `vcs unstage <file>` | Removes from staging |
+| `vcs save -m "msg"` | Creates a commit (snapshot) from staged files |
+| `vcs status` | Shows staged / modified / untracked files |
 | `vcs log` | Commit history |
-| `vcs show <commit\|tag>` | Ek commit ki poori detail |
-| `vcs diff [<commit\|tag>]` | Working directory vs HEAD (ya diya gaya commit) ka diff |
-| `vcs blame <file>` | Line-by-line kis commit ne kya likha |
-| `vcs branch` / `vcs branch <name>` / `vcs branch -d <name>` | List / create / delete branch |
-| `vcs switch <name>` / `vcs switch -c <name>` | Branch switch karna (with optional create) |
-| `vcs merge <branch>` | Branch ko current branch mein merge karna |
-| `vcs revert <file>` | Ek file ke local changes discard karke HEAD se restore |
-| `vcs restore <commit\|tag>` | Poora project kisi purani snapshot pe le jaana |
-| `vcs undo` | Last commit undo (changes staged rehte hain) |
-| `vcs stash` / `vcs stash pop` | Changes shelve / re-apply |
-| `vcs gc` | Loose objects ko packfile mein compact karna |
-| `vcs tag` / `vcs tag <name> "msg"` / `vcs tag -d <name>` | List / create / delete tag |
-| `vcs remote add <name> <url>` | pyvcs server ka remote add karna |
-| `vcs push` / `vcs fetch` / `vcs pull` | pyvcs ke apne server ke saath sync |
-| `vcs clone <url> [dir]` | pyvcs server se repository clone karna |
-| `vcs server [port]` | Apna pyvcs remote server chalu karna (default port 5000) |
-| `vcs github <repo-url> [branch]` | Tracked files GitHub par push karna (default branch: `main`) |
-| `vcs dashboard [port]` | Local web UI kholna (default port 8000) |
+| `vcs show <commit\|tag>` | Full detail of a commit |
+| `vcs diff [<commit\|tag>]` | Diff of working directory vs HEAD (or a given commit) |
+| `vcs blame <file>` | Line-by-line, which commit wrote what |
+| `vcs branch` / `vcs branch <name>` / `vcs branch -d <name>` | List / create / delete a branch |
+| `vcs switch <name>` / `vcs switch -c <name>` | Switch branches (with optional create) |
+| `vcs merge <branch>` | Merges a branch into the current branch |
+| `vcs revert <file>` | Discards local changes to a file, restoring from HEAD |
+| `vcs restore <commit\|tag>` | Restores the entire project to an earlier snapshot |
+| `vcs undo` | Undoes the last commit (changes remain staged) |
+| `vcs stash` / `vcs stash pop` | Shelve / re-apply changes |
+| `vcs gc` | Compacts loose objects into a packfile |
+| `vcs tag` / `vcs tag <name> "msg"` / `vcs tag -d <name>` | List / create / delete a tag |
+| `vcs remote add <name> <url>` | Adds a pyvcs server remote |
+| `vcs push` / `vcs fetch` / `vcs pull` | Sync with your own pyvcs server |
+| `vcs clone <url> [dir]` | Clones a repository from a pyvcs server |
+| `vcs server [port]` | Runs your own pyvcs remote server (default port 5000) |
+| `vcs github <repo-url> [branch]` | Pushes tracked files to GitHub (default branch: `main`) |
+| `vcs dashboard [port]` | Opens the local web UI (default port 8000) |
 
 ---
 
-## 4. GitHub par push kaise hota hai (bina Git ke)
+## 4. Pushing to GitHub (without Git)
 
-Ye sabse important part hai, isliye detail mein.
+This is the most important part, so here it is in detail.
 
-`vcs github` **`git` binary bilkul use nahi karta**. Iske bajaye ye seedha GitHub ke [Contents REST API](https://docs.github.com/en/rest/repos/contents) ko `urllib` (Python standard library) se HTTPS call karta hai, aur tumhare pyvcs commit se har tracked file ko GitHub par upload/update kar deta hai.
+`vcs github` **never uses the `git` binary at all**. Instead, it calls GitHub's [Contents REST API](https://docs.github.com/en/rest/repos/contents) directly over HTTPS using `urllib` (Python standard library), and uploads/updates every tracked file from your pyvcs commit straight to GitHub.
 
-**Ye sirf unhi files ko push karta hai jo pyvcs ke HEAD commit mein hain** — jo file kabhi `vcs stage` + `vcs save` nahi hui, wo folder mein pade rehne ke bawajood kabhi GitHub par nahi jaayegi.
+**Only files that are part of the pyvcs HEAD commit get pushed** — a file that was never `vcs stage`d + `vcs save`d will never go to GitHub, no matter how long it sits in the folder.
 
 ### Step-by-step setup
 
-**Step 1 — GitHub par ek repository bana lo** (empty bhi chalega), jaise `https://github.com/username/my-project`.
+**Step 1 — Create a repository on GitHub** (an empty one is fine), e.g. `https://github.com/username/my-project`.
 
-**Step 2 — Personal Access Token banao**:
-1. GitHub par: Settings → Developer settings → Personal access tokens → Tokens (classic) → **Generate new token**
-2. Scope mein sirf `repo` select karo
-3. Token generate hone ke baad copy kar lo (dobara nahi dikhega)
+**Step 2 — Create a Personal Access Token**:
+1. On GitHub: Settings → Developer settings → Personal access tokens → Tokens (classic) → **Generate new token**
+2. Under scopes, select only `repo`
+3. Copy the token once it's generated (it won't be shown again)
 
-**Step 3 — Token ko environment variable mein set karo**:
+**Step 3 — Set the token as an environment variable**:
 
 Linux / macOS:
 ```bash
@@ -189,29 +189,29 @@ Windows PowerShell:
 $env:GITHUB_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"
 ```
 
-**Step 4 — Push karo**:
+**Step 4 — Push**:
 ```bash
 vcs stage .
 vcs save -m "my changes"
 vcs github https://github.com/username/my-project.git
 ```
 
-Bas. Har tracked file ke liye pyvcs GitHub ko ek HTTP `PUT` request bhejta hai (agar file already exist karti hai to uska SHA fetch karke update karta hai, warna naya file create karta hai) — end result Git ke `git push` jaisa hi hota hai, sirf raaste alag hain.
+That's it. For every tracked file, pyvcs sends an HTTP `PUT` request to GitHub (fetching the file's existing SHA and updating it if it already exists, or creating it fresh otherwise) — the end result is the same as `git push`, just via a different route.
 
-> **Security note**: Token ko kabhi bhi code mein hardcode ya commit mat karna — hamesha environment variable se hi use karo.
+> **Security note**: Never hardcode or commit the token anywhere in your code — always use it via an environment variable.
 
 ---
 
-## 5. Naya command kaise add karein
+## 5. Adding a New Command
 
-Har command do jagah touch karta hai:
+Every command touches two places:
 
-1. **Logic** — `repo.py` (ya `branch.py`/`tagger.py`/etc.) mein actual function
-2. **Wiring** — `cli.py` mein `elif cmd == "...":` block + `HELP_TEXT` mein ek line
+1. **Logic** — the actual function, in `repo.py` (or `branch.py`/`tagger.py`/etc.)
+2. **Wiring** — an `elif cmd == "...":` block in `cli.py`, plus a line in `HELP_TEXT`
 
-### Example: `vcs clean` (untracked files delete karne ke liye)
+### Example: `vcs clean` (deletes untracked files)
 
-**`repo.py`** mein add karo:
+Add to **`repo.py`**:
 ```python
 def clean(self):
     """Delete all untracked files from the working directory."""
@@ -223,25 +223,25 @@ def clean(self):
         print("Nothing to clean.")
 ```
 
-**`cli.py`** mein add karo (help text mein ek line, aur dispatch mein ek block):
+Add to **`cli.py`** (one line in the help text, and one block in the dispatcher):
 ```python
 elif cmd == "clean":
     repo.clean()
 ```
 
-Bas — `vcs clean` ab kaam karega. Isi pattern se `vcs amend`, `vcs cherry-pick`, `vcs alias`, jo bhi chaho, add ho sakta hai.
+Done — `vcs clean` will now work. The same pattern applies for `vcs amend`, `vcs cherry-pick`, `vcs alias`, or anything else you want to add.
 
 ---
 
-## 6. Code editor (VS Code) ke saath integration
+## 6. Code Editor (VS Code) Integration
 
-Do level hote hain — dono hi asli, kaam karne wale integration hain:
+There are two levels here — both real, working integrations:
 
-### Level 1 — Terminal / Tasks (turant use ho sakta hai, koi coding nahi chahiye)
+### Level 1 — Terminal / Tasks (works immediately, no coding needed)
 
-VS Code ke integrated terminal mein `vcs` alias already kaam karega (Section 2 dekho). Isse ek kadam aage, VS Code **Tasks** bana ke buttons/shortcuts bhi bana sakte ho:
+The `vcs` alias will already work in VS Code's integrated terminal (see Section 2). One step further, you can build VS Code **Tasks** to get buttons/shortcuts:
 
-`.vscode/tasks.json` (apne project ke andar):
+`.vscode/tasks.json` (inside your project):
 ```json
 {
   "version": "2.0.0",
@@ -271,42 +271,42 @@ VS Code ke integrated terminal mein `vcs` alias already kaam karega (Section 2 d
   ]
 }
 ```
-Ab `Ctrl+Shift+P` → "Run Task" → "vcs: save" jaisa kuch karke, bina terminal mein type kiye command chalegi.
+Now `Ctrl+Shift+P` → "Run Task" → "vcs: save" runs the command without typing it in the terminal.
 
-### Level 2 — Asli VS Code Extension (Source Control sidebar jaisa)
+### Level 2 — A Real VS Code Extension (Source Control sidebar)
 
-Git jaise **native sidebar UI** (jahan staged/unstaged files list dikhein, "+" button se stage ho, commit box ho) ke liye VS Code ki `SourceControl` API use karke ek extension likhni padegi — ye TypeScript mein hota hai, alag project hai (`pyvcs` se bilkul independent codebase), aur VS Code Marketplace pe publish bhi ho sakta hai. High level structure:
+For a Git-like **native sidebar UI** (staged/unstaged file list, a "+" button to stage, a commit box), you'd need to write an extension using VS Code's `SourceControl` API — this is done in TypeScript, as a completely separate codebase from `pyvcs`, and could even be published to the VS Code Marketplace. High-level structure:
 
 ```
 pyvcs-vscode-extension/
 ├── package.json          # extension manifest, activation events
 ├── src/
-│   └── extension.ts      # vscode.scm API se SourceControl provider register karna
+│   └── extension.ts      # registers a SourceControl provider via the vscode.scm API
 ```
-`extension.ts` ke andar `vscode.scm.createSourceControl(...)` se ek naya SCM provider register hota hai, jiske resource states tumhare `vcs status` ke output se (JSON ke form mein) bharoge. Agar tum chaho, ye ek alag, dedicated project ke roop mein bana sakte hain — batana, main uska skeleton bhi bana ke de sakta hoon.
+Inside `extension.ts`, `vscode.scm.createSourceControl(...)` registers a new SCM provider, whose resource states you'd populate from `vcs status`'s output (as JSON). This can be built as a separate, dedicated project — let me know if you'd like a skeleton for it too.
 
-Abhi ke liye **Level 1 (Tasks)** sabse practical aur turant kaam karne wala tareeka hai.
+For now, **Level 1 (Tasks)** is the most practical, immediately usable approach.
 
 ---
 
-## 7. Web Dashboard (git jaisi UI)
+## 7. Web Dashboard (Git-like UI)
 
 ```bash
 vcs dashboard
 ```
-Ye `http://localhost:8000` par ek local web UI khol deta hai (browser khud khul jaata hai) jahan se:
+This opens a local web UI at `http://localhost:8000` (the browser opens automatically), from where you get:
 
-- **Status, Log, Branches, Tags, Diff** — sab ek screen par
-- Buttons se: **Stage**, **Save (commit)**, **Push** (pyvcs server), **Pull**, **Fetch**
-- **Push to GitHub** — URL daal ke seedha GitHub push (Section 4 wala hi tareeka, UI se)
+- **Status, Log, Branches, Tags, Diff** — all on one screen
+- Buttons for: **Stage**, **Save (commit)**, **Push** (pyvcs server), **Pull**, **Fetch**
+- **Push to GitHub** — enter the URL and push directly (same approach as Section 4, via the UI)
 
-Port change karna ho: `vcs dashboard 9000`
+To change the port: `vcs dashboard 9000`
 
 ---
 
-## 8. Limitations — imandaari se
+## 8. Limitations — the honest list
 
-- `vcs github` ke liye internet aur ek valid GitHub token chahiye hi hoga (ye GitHub ki API ki requirement hai, koi bhi tool jo GitHub par push kare — Git ho ya pyvcs — usko authentication chahiye hoga).
-- Har push par har tracked file ke liye ek alag API call hoti hai — bahut zyada files (jaise sainkdo) ho to thoda slow lagega bade repos ke liye. Chhote/medium projects ke liye bilkul theek hai.
-- `vcs github` filhaal sirf ek branch ko update karta hai (pull requests, merge conflicts on GitHub side, etc. abhi implement nahi hain).
-- VS Code sidebar-level integration (Level 2 upar) ek separate extension project maangta hai — abhi repo mein included nahi hai.
+- `vcs github` requires internet access and a valid GitHub token — this is a GitHub API requirement, and any tool pushing to GitHub (Git or pyvcs) needs authentication.
+- Every push makes a separate API call per tracked file — with a very large number of files (hundreds), this can be a bit slow for big repos. Perfectly fine for small/medium projects.
+- `vcs github` currently only updates a single branch (pull requests, merge conflicts on GitHub's side, etc. aren't implemented yet).
+- VS Code sidebar-level integration (Level 2 above) requires a separate extension project — not included in this repo yet.
