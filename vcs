@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# pyvcs macOS/Linux launcher.
+# Resolves the folder this script lives in, whatever that folder is on
+# whichever machine it's copied to, so it keeps working even if the
+# whole pyvcs folder is moved or copied to someone else's computer.
+# Also follows symlinks (needed because install.sh links this file into
+# /usr/local/bin, so "vcs" run from PATH is a symlink, not the real file).
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+    TARGET="$(readlink "$SOURCE")"
+    if [[ $TARGET == /* ]]; then
+        SOURCE="$TARGET"
+    else
+        SOURCE="$(dirname "$SOURCE")/$TARGET"
+    fi
+done
+DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+exec python3 "$DIR/cli.py" "$@"
